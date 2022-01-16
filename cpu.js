@@ -8,7 +8,8 @@ class CPU {
     this.registerNames = [
       'ip', 'acc',
       'r1', 'r2', 'r3', 'r4',
-      'r5', 'r6', 'r7', 'r8'
+      'r5', 'r6', 'r7', 'r8',
+      'sp', 'fp'
     ];
 
     this.registers = createMemory(this.registerNames.length * 2);
@@ -18,6 +19,9 @@ class CPU {
 
       return map;  
     }, {});
+
+    this.setRegister('sp', memory.byteLength -1 -1);
+    this.setRegister('fp', memory.byteLength -1 -1);
   }
 
   debug() {
@@ -121,6 +125,42 @@ class CPU {
         if(value !== this.getRegister('acc')) {
           this.setRegister('ip', address);
         }
+
+        return;
+      }
+
+      // Push Literal
+      case instructions.PSH_LIT: {
+        const spAddress = this.getRegister('sp');
+        const value = this.fetch16();
+
+        this.memory.setUint16(spAddress, value);
+        this.setRegister('sp', spAddress - 2);
+
+        return;
+      }
+
+      // Push Register
+      case instructions.PSH_REG: {
+        const spAddress = this.getRegister('sp');
+        const regIndex = this.fetch8();
+        const value = this.registers.getUint16(regIndex*2);
+
+        this.memory.setUint16(spAddress, value);
+        this.setRegister('sp', spAddress - 2);
+
+        return;
+      }
+
+      // Pop
+      case instructions.POP: {
+        const spAddress = this.getRegister('sp');
+        const nextSpAddress = spAddress + 2;
+        const value = this.memory.getUint16(nextSpAddress);
+        const regIndex = this.fetch8();
+
+        this.registers.setUint16(regIndex*2, value);
+        this.setRegister('sp', nextSpAddress);
 
         return;
       }
